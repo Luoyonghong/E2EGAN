@@ -4,6 +4,7 @@
 *G_result*
 *imputation_test_result*
 *imputation_train_result*
+*imputation_val_result*
 *nohup*
 *.swp*
 *__init__*
