@@ -8,7 +8,7 @@ Created on Fri Feb  2 13:54:53 2018
 from __future__ import print_function
 import sys
 sys.path.append("..")
-import WGAN_AQ
+import E2EGAN_AQ
 import tensorflow as tf
 import argparse
 import numpy as np
@@ -20,9 +20,8 @@ def main():
     # parse arguments
     parser = argparse.ArgumentParser(description='manual to this script')
     parser.add_argument('--gpus', type=str, default = None)
-    parser.add_argument('--batch-size', type=int, default=8)
-    parser.add_argument('--impute-iter', type=int, default=796)
-    parser.add_argument('--pretrain-epoch', type=int, default=20)
+    parser.add_argument('--batch-size', type=int, default=4)
+    parser.add_argument('--pretrain-epoch', type=int, default=5)
     parser.add_argument('--run-type', type=str, default='train')
     parser.add_argument('--data-path', type=str, default=None)
     parser.add_argument('--model-path', type=str, default=None)
@@ -31,7 +30,7 @@ def main():
     parser.add_argument('--g-loss-lambda',type=float,default=0.0)
     parser.add_argument('--lr', type=float, default=0.005)
     #lr 0.001的时候 pretrain_loss降的很快，4个epoch就行了
-    parser.add_argument('--epoch', type=int, default=25)
+    parser.add_argument('--epoch', type=int, default=10)
     parser.add_argument('--n-inputs', type=int, default=132)
     parser.add_argument('--n-hidden-units', type=int, default=64)
     parser.add_argument('--n-classes', type=int, default=2)
@@ -73,12 +72,15 @@ def main():
     #make the max step length of two datasett the same
     
     
-    dt_train=readData_for_gan.ReadAriQualityDataForGan("2017-01-30 00:00:00", "2017-11-29 23:00:00", args.missing_rate, "2017-11-30 00:00:00", "2018-12-30 23:00:00", "2017-12-31 00:00:00", "2018-01-30 00:00:00",args.isNormal)
+    dt_train=readData_for_gan.ReadAriQualityDataForGan("2017-01-30 00:00:00", "2017-11-29 23:00:00", args.missing_rate, "2017-11-30 00:00:00", "2017-12-30 23:00:00", "2017-12-31 00:00:00", "2018-01-30 00:00:00",args.isNormal)
     
-    #disc_iters = [6,7,8]
-    #lambdas = [0.5,1, 2, 5, 10,20,40]
-    disc_iters = [8]
-    lambdas = [0.51]
+
+    min_mse = 5.0
+    min_paras = []
+    disc_iters = [5,6,7,8,9]
+    lambdas = [0.1, 0.5, 1, 2, 5, 10,20,40]
+    #disc_iters = [5]
+    #lambdas = [5]
     for disc in disc_iters:
         for lam in lambdas:
             args.disc_iters = disc
@@ -89,7 +91,7 @@ def main():
             config = tf.ConfigProto() 
             config.gpu_options.allow_growth = True 
             with tf.Session(config=config) as sess:
-                gan = WGAN_AQ.WGAN_AQ(sess,
+                gan = E2EGAN_AQ.E2EGAN_AQ(sess,
                             args=args,
                             datasets=dt_train,
                             )
@@ -109,12 +111,46 @@ def main():
                 print(" [*] Training dataset Imputation finished!")
                 
                 print(" [*] Begin validation set imputation!")
-                gan.imputation(dt_train,2)
+                now_mse = gan.imputation(dt_train,2)
                 print(" [*] Validation dataset Imputation finished!")
+                if now_mse < min_mse:
+                    min_mse = now_mse
+                    min_paras = []
+                    min_paras.append(disc)
+                    min_paras.append(lam)
 
                 #print(" [*] Begin training set imputation!")
                 #gan.imputation(dt_train,3)
                 #print(" [*] Training dataset Imputation finished!")
             tf.reset_default_graph()
+    
+
+
+    args.disc_iters = min_paras[0]
+    args.g_loss_lambda = min_paras[1]
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True 
+    with tf.Session(config=config) as sess:
+        gan = E2EGAN_AQ.E2EGAN_AQ(sess,
+                    args=args,
+                    datasets=dt_train,
+                    )
+
+        # build graph
+        gan.build_model()
+
+        # show network architecture
+        #show_all_variables()
+
+        # launch the graph in a session
+        gan.train()
+        print(" [*] Training finished!")
+
+        print(" [*] Begin testing set imputation!")
+        mse = gan.imputation(dt_train,3)
+        print(" [*] Testing dataset Imputation finished!")
+        print("[*] Testing dataset Imputation mse is: %.8f " %(mse))
+
+
 if __name__ == '__main__':
     main()

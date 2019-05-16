@@ -14,7 +14,7 @@ import numpy as np
 """
 E^2EGAN for imputation 
 """
-class WGAN_AQ(object):
+class E2EGAN_AQ(object):
     model_name = "E^2EGAN"     # name for checkpoint
 
     def __init__(self, sess, args, datasets):
@@ -38,7 +38,6 @@ class WGAN_AQ(object):
         self.result_path=args.result_path
         self.model_path=args.model_path
         self.pretrain_epoch=args.pretrain_epoch
-        self.impute_iter=args.impute_iter
         self.isSlicing=args.isSlicing
         self.g_loss_lambda=args.g_loss_lambda
         self.model_name+="_"+str(args.missing_rate)
@@ -436,15 +435,6 @@ class WGAN_AQ(object):
                 #x,y,mean,m,deltaPre,x_lengths,lastvalues,files,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub
                 for now_aq,now_aq_m,now_aq_last,now_aq_delta,now_aq_complete,now_meo,now_meo_m,now_meo_last,now_meo_delta,now_meo_complete,now_time,_ in self.datasets.next_train_data(self.n_steps,self.batch_size):
                     
-                    now_aq = self.reduce_dimension(now_aq,3)
-                    now_aq_m = self.reduce_dimension(now_aq_m,3)
-                    now_aq_last = self.reduce_dimension(now_aq_last,3)
-                    now_aq_delta = self.reduce_dimension(now_aq_delta,3)
-                    now_meo = self.reduce_dimension(now_meo,3)
-                    now_meo_m = self.reduce_dimension(now_meo_m,3)
-                    now_meo_last = self.reduce_dimension(now_meo_last,3)
-                    now_meo_delta = self.reduce_dimension(now_meo_delta,3)
-                    # pretrain
                     _ = self.sess.run(self.clip_all_vals)
                     #ita = np.random.normal(0, 0.01, size=(self.batch_size, self.n_steps, self.n_inputs))
                     ita = np.random.normal(0, 0.01, size=(self.batch_size, self.z_dim))
@@ -606,11 +596,13 @@ class WGAN_AQ(object):
                 print("Batchid: [%2d]  time: %4.4f, l2_loss: %.8f, p_fake: %.8f, gloss: %.8f"  % ( batchid, time.time() - start_time, l2loss, p_fake, gloss))
                 self.save_imputation(gx, batchid, self.sess.run(self.x_lengths), self.sess.run(self.imputed_delta), now_time, run_type)
                 batchid+=1
+            return None
 
         if run_type == 2:
             start_time = time.time()
             batchid=1
             counter=1
+            mses = []
             for now_aq,now_aq_m,now_aq_last,now_aq_delta,now_aq_complete, now_meo,now_meo_m,now_meo_last,now_meo_delta, now_meo_complete, now_time,_ in self.datasets.next_val_data(self.n_steps,self.batch_size):
 
                 #ita = np.random.normal(0, 0.01, size=(self.batch_size, self.n_steps, self.n_inputs))
@@ -631,13 +623,17 @@ class WGAN_AQ(object):
                                                                   self.keep_prob: 1.0})
                 counter+=1
                 print("Batchid: [%2d]  time: %4.4f, mse: %.8f, p_fake: %.8f, gloss: %.8f"  % ( batchid, time.time() - start_time, mse, p_fake, gloss))
+                mses.append(mse)
                 self.save_imputation(gx, batchid, self.sess.run(self.x_lengths), self.sess.run(self.imputed_delta), now_time, run_type)
                 batchid+=1
+            print(sum(mses)/len(mses))
+            return sum(mses)/len(mses)
 
         if run_type == 3:
             start_time = time.time()
             batchid=1
             counter=1
+            mses = []
             for now_aq,now_aq_m,now_aq_last,now_aq_delta,now_aq_complete, now_meo,now_meo_m,now_meo_last,now_meo_delta, now_meo_complete, now_time,_ in self.datasets.next_test_data(self.n_steps,self.batch_size):
 
                 #ita = np.random.normal(0, 0.01, size=(self.batch_size, self.n_steps, self.n_inputs))
@@ -658,8 +654,11 @@ class WGAN_AQ(object):
                                                                   self.keep_prob: 1.0})
                 counter+=1
                 print("Batchid: [%2d]  time: %4.4f, mse: %.8f, p_fake: %.8f, gloss: %.8f"  % ( batchid, time.time() - start_time, mse, p_fake, gloss))
+                mses.append(mse)
                 self.save_imputation(gx, batchid, self.sess.run(self.x_lengths), self.sess.run(self.imputed_delta), now_time, run_type)
                 batchid+=1
+            print(sum(mses)/len(mses))
+            return sum(mses)/len(mses)
             #self.run_grui()
 
     def run_grui(self):
@@ -671,10 +670,10 @@ class WGAN_AQ(object):
 
     @property
     def model_dir(self):
-        return "{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
+        return "{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
             self.epoch,self.disc_iters,self.n_inputs,
             self.batch_size, self.z_dim,
-            self.lr,self.impute_iter,
+            self.lr,
             self.isNormal,self.isbatch_normal,
             self.n_steps,
             self.g_loss_lambda,self.beta1,self.n_hidden_units,
