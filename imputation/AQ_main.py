@@ -20,8 +20,8 @@ def main():
     # parse arguments
     parser = argparse.ArgumentParser(description='manual to this script')
     parser.add_argument('--gpus', type=str, default = None)
-    parser.add_argument('--batch-size', type=int, default=4)
-    parser.add_argument('--pretrain-epoch', type=int, default=5)
+    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--pretrain-epoch', type=int, default=10)
     parser.add_argument('--run-type', type=str, default='train')
     parser.add_argument('--data-path', type=str, default=None)
     parser.add_argument('--model-path', type=str, default=None)
@@ -29,8 +29,7 @@ def main():
     parser.add_argument('--dataset-name', type=str, default=None)
     parser.add_argument('--g-loss-lambda',type=float,default=0.0)
     parser.add_argument('--lr', type=float, default=0.005)
-    #lr 0.001的时候 pretrain_loss降的很快，4个epoch就行了
-    parser.add_argument('--epoch', type=int, default=10)
+    parser.add_argument('--epoch', type=int, default=15)
     parser.add_argument('--n-inputs', type=int, default=132)
     parser.add_argument('--n-hidden-units', type=int, default=64)
     parser.add_argument('--n-classes', type=int, default=2)
@@ -72,15 +71,16 @@ def main():
     #make the max step length of two datasett the same
     
     
-    dt_train=readData_for_gan.ReadAriQualityDataForGan("2017-01-30 00:00:00", "2017-11-29 23:00:00", args.missing_rate, "2017-11-30 00:00:00", "2017-12-30 23:00:00", "2017-12-31 00:00:00", "2018-01-30 00:00:00",args.isNormal)
+    dt_train=readData_for_gan.ReadAriQualityDataForGan("2017-01-30 00:00:00", "2017-11-15 23:00:00", args.missing_rate, "2017-11-16 00:00:00", "2017-12-25 23:00:00", "2017-12-26 00:00:00", "2018-01-30 00:00:00",args.isNormal)
     
 
     min_mse = 5.0
+    msesssssss = []
     min_paras = []
-    disc_iters = [5,6,7,8,9]
-    lambdas = [0.1, 0.5, 1, 2, 5, 10,20,40]
+    disc_iters = [1,2,3,4,5,6,7,8,9]
+    #lambdas = [0.1, 0.5, 1, 2, 5, 10,20,40]
     #disc_iters = [5]
-    #lambdas = [5]
+    lambdas = [2]
     for disc in disc_iters:
         for lam in lambdas:
             args.disc_iters = disc
@@ -112,6 +112,7 @@ def main():
                 
                 print(" [*] Begin validation set imputation!")
                 now_mse = gan.imputation(dt_train,2)
+                msesssssss.append(now_mse)
                 print(" [*] Validation dataset Imputation finished!")
                 if now_mse < min_mse:
                     min_mse = now_mse
@@ -125,6 +126,7 @@ def main():
             tf.reset_default_graph()
     
 
+    print("min val mse:%.8f"%min_mse)
 
     args.disc_iters = min_paras[0]
     args.g_loss_lambda = min_paras[1]
@@ -150,6 +152,9 @@ def main():
         mse = gan.imputation(dt_train,3)
         print(" [*] Testing dataset Imputation finished!")
         print("[*] Testing dataset Imputation mse is: %.8f " %(mse))
+
+    print("val mse are:")
+    print(msesssssss)
 
 
 if __name__ == '__main__':

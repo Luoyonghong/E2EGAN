@@ -344,7 +344,7 @@ class E2EGAN_AQ(object):
         #self.ita = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs]) 
         self.ita = tf.placeholder(tf.float32, [None, self.z_dim]) 
         
-        combined_x=tf.concat([self.aq,self.meo],2)
+        combined_x=tf.concat([self.aq_lastvalues,self.meo_lastvalues],2)
         combined_delta=tf.concat([self.aq_delta,self.meo_delta],2)
         combined_m=tf.concat([self.aq_m,self.meo_m],2)
         completed_x = tf.concat([self.complete_aq, self.complete_meo], 2)
@@ -354,7 +354,7 @@ class E2EGAN_AQ(object):
 
         Pre_x = self.pretrainG(combined_x, combined_m, self.ita, combined_delta, self.x_lengths, self.keep_prob, is_training=True, reuse=False)
         # 每个序列length不一样，除的时候考虑只除length长度
-        self.pretrain_loss = tf.reduce_sum(tf.square(tf.multiply(Pre_x, combined_m) - combined_x)) / tf.cast(tf.reduce_sum(combined_m), tf.float32)
+        self.pretrain_loss = tf.reduce_sum(tf.square(tf.multiply(Pre_x, combined_m) -tf.multiply(combined_x, combined_m))) / tf.cast(tf.reduce_sum(combined_m), tf.float32)
         
         #discriminator(self, X,  DeltaPre, X_lengths,Keep_prob, is_training=True, reuse=False, isTdata=True):
         
@@ -591,7 +591,7 @@ class E2EGAN_AQ(object):
                                                                   self.meo_delta: now_meo_delta,
                                                                   self.meo_lastvalues: now_meo_last,
                                                                   self.ita:ita,
-                                                                  self.keep_prob: 1.0})
+                                                                  self.keep_prob: 0.8})
                 counter+=1
                 print("Batchid: [%2d]  time: %4.4f, l2_loss: %.8f, p_fake: %.8f, gloss: %.8f"  % ( batchid, time.time() - start_time, l2loss, p_fake, gloss))
                 self.save_imputation(gx, batchid, self.sess.run(self.x_lengths), self.sess.run(self.imputed_delta), now_time, run_type)
@@ -620,7 +620,7 @@ class E2EGAN_AQ(object):
                                                                   self.meo_delta: now_meo_delta,
                                                                   self.meo_lastvalues: now_meo_last,
                                                                   self.ita:ita,
-                                                                  self.keep_prob: 1.0})
+                                                                  self.keep_prob: 0.8})
                 counter+=1
                 print("Batchid: [%2d]  time: %4.4f, mse: %.8f, p_fake: %.8f, gloss: %.8f"  % ( batchid, time.time() - start_time, mse, p_fake, gloss))
                 mses.append(mse)
@@ -651,7 +651,7 @@ class E2EGAN_AQ(object):
                                                                   self.meo_delta: now_meo_delta,
                                                                   self.meo_lastvalues: now_meo_last,
                                                                   self.ita:ita,
-                                                                  self.keep_prob: 1.0})
+                                                                  self.keep_prob: 0.8})
                 counter+=1
                 print("Batchid: [%2d]  time: %4.4f, mse: %.8f, p_fake: %.8f, gloss: %.8f"  % ( batchid, time.time() - start_time, mse, p_fake, gloss))
                 mses.append(mse)
