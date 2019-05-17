@@ -80,7 +80,10 @@ def main():
     disc_iters = [1,2,3,4,5,6,7,8,9]
     #lambdas = [0.1, 0.5, 1, 2, 5, 10,20,40]
     #disc_iters = [5]
-    lambdas = [2]
+    if args.missing_rate == 0.5:
+        lambdas = [2]
+    else :
+        lambdas = [1,2,3,4,5,6,7,8,9]
     for disc in disc_iters:
         for lam in lambdas:
             args.disc_iters = disc
@@ -127,6 +130,7 @@ def main():
     
 
     print("min val mse:%.8f"%min_mse)
+    print("min val paras are disc: %.2f, lambda: %.2f "%(min_paras[0], min_paras[1]) )
 
     args.disc_iters = min_paras[0]
     args.g_loss_lambda = min_paras[1]
@@ -153,9 +157,10 @@ def main():
         print(" [*] Testing dataset Imputation finished!")
         print("[*] Testing dataset Imputation mse is: %.8f " %(mse))
 
+
     print("val mse are:")
     print(msesssssss)
-
+    
 
 if __name__ == '__main__':
     main()
