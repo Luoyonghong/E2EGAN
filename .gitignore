@@ -12,7 +12,7 @@
 AirQualityData/*data*
 AirQualityData/*2017*
 AirQualityData/*2018*
-AirQualityData/*originData*
+AirQualityData/originData
 *should_deleted*
 *impute_gan*
 *aq_ganimpute*
