@@ -17,9 +17,9 @@ import tensorflow as tf
 from tensorflow.python.ops import math_ops
 tf.set_random_seed(1)   # set random seed
  
-class grui(object):
-    model_name = "GRUI_phy"
-    def __init__(self, sess, args, dataset, test_set):
+class gru(object):
+    model_name = "GRU"
+    def __init__(self, sess, args, dataset, test_set, val_set):
         self.lr = args.lr            
         self.sess=sess
         self.isbatch_normal=args.isBatch_normal
@@ -49,13 +49,7 @@ class grui(object):
         self.x_lengths = tf.placeholder(tf.int32,  shape=[self.batch_size,])
         # 对 weights biases 初始值的定义
         self.test_set=test_set
-       
-
-    #concatenate x and m 
-    #rth should be also concatenate after x, then decay the older state
-    #rth's length is n_hidden_units
-
-
+        self.val_set = val_set
 
     def RNN(self,X, M, Delta,  Mean, Lastvalues, X_lengths,Keep_prob, reuse=False):
         #       2*3*2
@@ -81,30 +75,26 @@ class grui(object):
             Delta=tf.reshape(Delta,[-1,self.n_inputs])
             
             
-            rth= tf.matmul( Delta, wr_h)+br_h
-            rth=math_ops.exp(-tf.maximum(0.0,rth))
+            #rth= tf.matmul( Delta, wr_h)+br_h
+            #rth=math_ops.exp(-tf.maximum(0.0,rth))
             
             #X = tf.reshape(X, [-1, n_inputs])
             #print(X.get_shape(),M.get_shape(),rth.get_shape())
-            X=tf.concat([X,rth],1)
+            #X=tf.concat([X,rth],1)
             
-            X_in = tf.reshape(X, [-1, self.n_steps, self.n_inputs+self.n_hidden_units])
+            X_in = tf.reshape(X, [-1, self.n_steps, self.n_inputs])
             
-            #print(X_in.get_shape())
-            # X_in = W*X + b
-            #X_in = tf.matmul(X, weights['in']) + biases['in']
-            # X_in ==> (128 batches, 28 steps, 128 hidden) 换回3维
-            #X_in = tf.reshape(X_in, [-1, n_steps, n_hidden_units])
+            gru_cell = tf.nn.rnn_cell.GRUCell(self.n_hidden_units)
+
+            #if "1.5" in tf.__version__ or "1.7" in tf.__version__ :   
+            #    grud_cell = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            #elif "1.4" in tf.__version__:
+            #    grud_cell = mygru_cell.MyGRUCell4(self.n_hidden_units)
+            #elif "1.2" in tf.__version__:
+            #    grud_cell = mygru_cell.MyGRUCell2(self.n_hidden_units)
             
-            if "1.5" in tf.__version__ or "1.7" in tf.__version__ :   
-                grud_cell = mygru_cell.MyGRUCell15(self.n_hidden_units)
-            elif "1.4" in tf.__version__:
-                grud_cell = mygru_cell.MyGRUCell4(self.n_hidden_units)
-            elif "1.2" in tf.__version__:
-                grud_cell = mygru_cell.MyGRUCell2(self.n_hidden_units)
-            
-            init_state = grud_cell.zero_state(self.batch_size, dtype=tf.float32) # 初始化全零 state
-            outputs, final_state = tf.nn.dynamic_rnn(grud_cell, X_in, \
+            init_state = gru_cell.zero_state(self.batch_size, dtype=tf.float32) # 初始化全零 state
+            outputs, final_state = tf.nn.dynamic_rnn(gru_cell, X_in, \
                                 initial_state=init_state,\
                                 sequence_length=X_lengths,
                                 time_major=False)
@@ -119,7 +109,6 @@ class grui(object):
         self.pred = self.RNN(self.x, self.m, self.delta, self.mean, self.lastvalues, self.x_lengths, self.keep_prob)
         self.cross_entropy = -tf.reduce_sum(self.y*tf.log(self.pred))
         self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.cross_entropy)
-         
         
         self.correct_pred = tf.equal(tf.argmax(self.pred, 1), tf.argmax(self.y, 1))
         self.accuracy = tf.reduce_mean(tf.cast(self.correct_pred, tf.float32))
@@ -130,8 +119,6 @@ class grui(object):
         
         self.sum=tf.summary.merge([loss_sum, acc_sum])
         
-        
-    
     def model_dir(self,epoch):
         return "{}_{}_{}_{}_{}_{}_{}_{}/epoch{}".format(
             self.model_name, self.lr,self.n_inputs,
@@ -185,6 +172,7 @@ class grui(object):
 
     def train(self):
         max_auc = 0.5
+        max_epoch = 0
         model_dir2= "{}_{}_{}_{}_{}_{}_{}_{}".format(
             self.model_name, self.lr, self.n_inputs, 
             self.batch_size, self.isNormal,
@@ -200,13 +188,14 @@ class grui(object):
                 print(" [*] Load SUCCESS")
                 print("epoch: "+str(nowepoch))
                 self.load(self.checkpoint_dir,nowepoch)
-                acc,auc,model_name=self.test(self.test_set,nowepoch)
+                acc,auc,model_name=self.val(self.val_set,nowepoch)
                 if auc > max_auc :
                     max_auc = auc 
-                result_file.write("epoch: "+str(nowepoch)+","+str(acc)+","+str(auc)+"\r\n")
+                    max_epoch = nowepoch
+                result_file.write("epoch: "+str(nowepoch)+", val acc: "+str(acc)+", val auc: "+str(auc)+"\r\n")
                 print("")
             result_file.close()
-            return max_auc 
+            return max_auc, max_epoch
         else:
             # initialize all variables
             tf.global_variables_initializer().run()
@@ -220,12 +209,6 @@ class grui(object):
             dataset.shuffle(self.batch_size,True)
             for data_x,data_y,data_mean,data_m,data_delta,data_x_lengths,data_lastvalues,_,_,_ in dataset.nextBatch():
 
-                data_x = self.reduce_dimension(data_x,3)
-                data_mean = self.reduce_dimension(data_mean,1)
-                data_m = self.reduce_dimension(data_m,3)
-                data_delta = self.reduce_dimension(data_delta,3)
-                data_lastvalues = self.reduce_dimension(data_lastvalues,3)
-
                 _,loss,summary_str,acc = self.sess.run([self.train_op,self.cross_entropy, self.sum, self.accuracy], feed_dict={\
                     self.x: data_x,\
                     self.y: data_y,\
@@ -238,37 +221,28 @@ class grui(object):
         
                 counter += 1
                 idx+=1
-                """
-                if counter%10==0:
-                    print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, acc: %.8f " \
-                              % (epochcount, idx, self.num_batches, time.time() - start_time, loss, acc))
-                """
             epochcount+=1
             idx=0
             self.save(self.checkpoint_dir, counter, epochcount)
             print("epoch: "+str(epochcount))
-            acc,auc,model_name=self.test(self.test_set,epochcount)
+            acc,auc,model_name=self.val(self.val_set,epochcount)
             if auc > max_auc :
                 max_auc = auc 
-            result_file.write("epoch: "+str(epochcount)+","+str(acc)+","+str(auc)+"\r\n")
+                max_epoch = epochcount
+            result_file.write("epoch: "+str(epochcount)+", val acc: "+str(acc)+", val auc: "+str(auc)+"\r\n")
             print("")
         result_file.close()
-        return max_auc 
+        return max_auc, max_epoch
             
-    def test(self,dataset,epoch):
+    def val(self,dataset,epoch):
         start_time=time.time()
         counter=0
-        dataset.shuffle(self.batch_size,True)
+        dataset.shuffle(self.batch_size,False)
         totalacc=0.0
         totalauc=0.0
         auccounter=0
         for data_x,data_y,data_mean,data_m,data_delta,data_x_lengths,data_lastvalues,_,_,_ in dataset.nextBatch():
 
-            data_x = self.reduce_dimension(data_x,3)
-            data_mean = self.reduce_dimension(data_mean,1)
-            data_m = self.reduce_dimension(data_m,3)
-            data_delta = self.reduce_dimension(data_delta,3)
-            data_lastvalues = self.reduce_dimension(data_lastvalues,3)
 
             summary_str,acc,pred = self.sess.run([self.sum, self.accuracy,self.pred], feed_dict={\
                 self.x: data_x,\
@@ -297,9 +271,55 @@ class grui(object):
             totalauc=totalauc/auccounter
         except:
             pass
-        print("Total acc: %.8f, Total auc: %.8f , counter is : %.2f , auccounter is %.2f" % (totalacc,totalauc,counter,auccounter))
+        print("Total val acc: %.8f, Total val auc: %.8f , counter is : %.2f , auccounter is %.2f" % (totalacc,totalauc,counter,auccounter))
         f=open(os.path.join(self.checkpoint_dir, self.model_dir(epoch), self.model_name,"final_acc_and_auc"),"w")
         f.write(str(totalacc)+","+str(totalauc))
         f.close()
         return totalacc,totalauc,self.model_name
   
+    def test(self,dataset,epoch):
+        start_time=time.time()
+        counter=0
+        dataset.shuffle(self.batch_size,False)
+        totalacc=0.0
+        totalauc=0.0
+        auccounter=0
+
+        if os.path.exists(os.path.join(self.checkpoint_dir, self.model_dir(self.epoch), self.model_name)):
+            if self.load(self.checkpoint_dir, epoch):
+                print(" [*] Load SUCCESS")
+                print("epoch: "+str(epoch))
+            else:
+                print(" [*] Load fail")
+                return None
+        for data_x,data_y,data_mean,data_m,data_delta,data_x_lengths,data_lastvalues,_,_,_ in dataset.nextBatch():
+
+            summary_str,acc,pred = self.sess.run([self.sum, self.accuracy,self.pred], feed_dict={\
+                self.x: data_x,\
+                self.y: data_y,\
+                self.m: data_m,\
+                self.delta: data_delta,\
+                self.mean: data_mean,\
+                self.x_lengths: data_x_lengths,\
+                self.lastvalues: data_lastvalues,\
+                self.keep_prob: 1.0})
+    
+            try:
+                auc = metrics.roc_auc_score(np.array(data_y),np.array(pred))
+                totalauc+=auc
+                auccounter+=1
+                print("Batch: %4d time: %4.4f, acc: %.8f, auc: %.8f" \
+                          % ( counter, time.time() - start_time, acc, auc))
+            except ValueError:
+                print("Batch: %4d time: %4.4f, acc: %.8f " \
+                          % ( counter, time.time() - start_time, acc))
+                pass
+            totalacc+=acc
+            counter += 1
+        totalacc=totalacc/counter
+        try:
+            totalauc=totalauc/auccounter
+        except:
+            pass
+        print("Total test  acc: %.8f, Total test auc: %.8f , counter is : %.2f , auccounter is %.2f" % (totalacc,totalauc,counter,auccounter))
+        return totalacc,totalauc 
