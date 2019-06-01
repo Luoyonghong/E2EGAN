@@ -206,7 +206,7 @@ class gru(object):
         epochcount=0
         dataset=self.dataset
         while epochcount<self.epoch:
-            dataset.shuffle(self.batch_size,True)
+            dataset.shuffle(self.batch_size, False)
             for data_x,data_y,data_mean,data_m,data_delta,data_x_lengths,data_lastvalues,_,_,_ in dataset.nextBatch():
 
                 _,loss,summary_str,acc = self.sess.run([self.train_op,self.cross_entropy, self.sum, self.accuracy], feed_dict={\

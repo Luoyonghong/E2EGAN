@@ -66,11 +66,11 @@ def main():
 
     #make the max step length of two datasett the same
     #epochs=[30]
-    g_loss_lambdas=[0.2,0.5,1,5,10,16,20,50]
+    g_loss_lambdas=[0.2,0.5,1,5,8,10,16,20,50]
     disc_iters = [1,2,3,4,5,6,7,8]
     epochs=[10]
-    #g_loss_lambdas=[10]
-    #disc_iters = [5]
+    #g_loss_lambdas=[16]
+    #disc_iters = [6]
     for disc in disc_iters:
         for e in epochs:
             for g_l in g_loss_lambdas:

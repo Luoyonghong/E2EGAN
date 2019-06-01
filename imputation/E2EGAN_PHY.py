@@ -432,7 +432,7 @@ class E2EGAN(object):
             #todo
             for epoch in range(start_epoch, self.pretrain_epoch):
             # get batch data
-                self.datasets.shuffle(self.batch_size,True)
+                self.datasets.shuffle(self.batch_size,False)
                 idx=0
                 #x,y,mean,m,deltaPre,x_lengths,lastvalues,files,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub
                 for data_x,data_y,data_mean,data_m,data_deltaPre,data_x_lengths,data_lastvalues,_,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub in self.datasets.nextBatch():
@@ -507,7 +507,7 @@ class E2EGAN(object):
         for epoch in range(start_epoch, self.epoch):
 
             # get batch data
-            self.datasets.shuffle(self.batch_size,True)
+            self.datasets.shuffle(self.batch_size,False)
             idx=0
             for data_x,data_y,data_mean,data_m,data_deltaPre,data_x_lengths,data_lastvalues,_,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub in self.datasets.nextBatch():
                 
@@ -603,7 +603,7 @@ class E2EGAN(object):
         self.datasets = dataset 
         start_time = time.time()
         if runtype == 1:
-            self.datasets.shuffle(self.batch_size,True)
+            self.datasets.shuffle(self.batch_size,False)
         else:
             self.datasets.shuffle(self.batch_size,False)
 

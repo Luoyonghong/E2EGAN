@@ -19,7 +19,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpus', type=str, default = None)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--run-type', type=str, default='test')
-    parser.add_argument('--data-path', type=str, default="../imputation/imputation_train_results/E2EGAN_PHY/10_7_41_64_64_0.005_400_True_True_True_20_0.5")
+    parser.add_argument('--data-path', type=str, default="../imputation/imputation_train_results/E2EGAN_PHY/10_6_41_128_64_0.005_400_True_True_True_16_0.5")
     #输入填充之后的训练数据集的完整路径
     parser.add_argument('--model-path', type=str, default=None)
     parser.add_argument('--result-path', type=str, default=None)
@@ -71,51 +71,53 @@ if __name__ == '__main__':
     dt_val.load()
 
 
-    paras = []
-    hiddenUnits=[16,32,64,128]
-    lrs=[0.008,0.01,0.012,0.015] 
-    #hiddenUnits=[64]
-    #lrs=[0.005, 0.008] 
-    max_auc = 0.5
-    for units in hiddenUnits:
-        for lr in lrs:
-            args.n_hidden_units=units
-            args.lr=lr
-            tf.reset_default_graph()
-            config = tf.ConfigProto() 
-            config.gpu_options.allow_growth = True 
-            with tf.Session(config=config) as sess:
-                model = gru_forGAN.gru(sess,
-                            args=args,
-                            dataset=dt_train,
-                            test_set=dt_test,
-                            val_set = dt_val
-                            )
-        
-                # build graph
-                model.build()
-                max_val_auc,max_val_epoch = model.train()
-                print("now max val auc: %.8f"%(max_val_auc))
-                print(" [*] Training and validating finished!")
-                test_acc, test_auc = model.test(dt_test, max_val_epoch)
-                print(" [*] Testing for one, auc is : %.8f" % test_auc)
-                if test_auc > max_auc :
-                    max_auc = test_auc
-                    paras = []
-                    paras.append(units)
-                    paras.append(lr)
-                    paras.append(max_val_epoch)
+    #paras = []
+    #hiddenUnits=[16,32,64,128]
+    #lrs=[0.008,0.01,0.012,0.015] 
+    ##hiddenUnits=[64]
+    ##lrs=[0.005, 0.008] 
+    #max_auc = 0.5
+    #for units in hiddenUnits:
+    #    for lr in lrs:
+    #        args.n_hidden_units=units
+    #        args.lr=lr
+    #        tf.reset_default_graph()
+    #        config = tf.ConfigProto() 
+    #        config.gpu_options.allow_growth = True 
+    #        with tf.Session(config=config) as sess:
+    #            model = gru_forGAN.gru(sess,
+    #                        args=args,
+    #                        dataset=dt_train,
+    #                        test_set=dt_test,
+    #                        val_set = dt_val
+    #                        )
+    #    
+    #            # build graph
+    #            model.build()
+    #            max_val_auc,max_val_epoch = model.train()
+    #            print("now max val auc: %.8f"%(max_val_auc))
+    #            print(" [*] Training and validating finished!")
+    #            test_acc, test_auc = model.test(dt_test, max_val_epoch)
+    #            print(" [*] Testing for one, auc is : %.8f" % test_auc)
+    #            if test_auc > max_auc :
+    #                max_auc = test_auc
+    #                paras = []
+    #                paras.append(units)
+    #                paras.append(lr)
+    #                paras.append(max_val_epoch)
 
-            print("")
-    print("max  auc is : %.8f" %(max_auc))
-    print()
-    print("max  auc paras:")
-    print(paras)
+    #        print("")
+    #print("max  auc is : %.8f" %(max_auc))
+    #print()
+    #print("max  auc paras:")
+    #print(paras)
 
 
 
-    args.n_hidden_units = paras[0]
-    args.lr = paras[1]
+    #args.n_hidden_units = paras[0]
+    #args.lr = paras[1]
+    args.n_hidden_units = 128
+    args.lr = 0.015
     tf.reset_default_graph()
     config = tf.ConfigProto() 
     config.gpu_options.allow_growth = True 
@@ -129,7 +131,9 @@ if __name__ == '__main__':
     
         # build graph
         model.build()
-        test_acc, test_auc = model.test(dt_test, paras[2])
+        #test_acc, test_auc = model.test(dt_test, paras[2])
+        for e in range(1, 30):
+            test_acc, test_auc = model.test(dt_test, e)
     print("final test auc is : %.8f" %(test_auc))
     f = open(args.checkpoint_dir + "/" + "test_result", "w")
     
