@@ -15,7 +15,7 @@ from GRUI import mygru_cell
 尝试改成N次生成器，一次判别器
 """
 class E2EGAN(object):
-    model_name = "E2EGAN_Phy"     # name for checkpoint
+    model_name = "E2EGAN_PHY"     # name for checkpoint
 
     def __init__(self, sess, args, datasets):
         self.sess = sess
@@ -599,10 +599,14 @@ class E2EGAN(object):
         
         self.save(self.checkpoint_dir, counter)
 
-    def imputation(self, dataset, isTrain ):
+    def imputation(self, dataset, runtype ):
         self.datasets = dataset 
         start_time = time.time()
-        self.datasets.shuffle(self.batch_size,True)
+        if runtype == 1:
+            self.datasets.shuffle(self.batch_size,True)
+        else:
+            self.datasets.shuffle(self.batch_size,False)
+
         batch_id = 1
         for data_x,data_y,data_mean,data_m,data_deltaPre,data_x_lengths,data_lastvalues,_,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub in self.datasets.nextBatch():
             
@@ -636,17 +640,17 @@ class E2EGAN(object):
                                                       self.imputed_deltasub:imputed_deltasub,
                                                       self.keep_prob: 1})
             print("Batchid: [%2d]  time: %4.4f, l2_loss: %.8f, p_fake: %.8f, gloss: %.8f"  % ( batch_id, time.time() - start_time, l2loss, p_fake, gloss))
-            self.save_imputation(gx, batch_id, data_x_lengths, imputed_deltapre, data_y, isTrain )   
+            self.save_imputation(gx, batch_id, data_x_lengths, imputed_deltapre, data_y, runtype)
             batch_id = batch_id + 1
 
-        if not isTrain:
+        if runtype == 3:
             self.run_grui()
         
     def run_grui(self):
         random.seed()
         gpu=random.randint(0,1)
         command="CUDA_VISIBLE_DEVICES="+str(gpu)+" python ../GRUI/Run_GAN_imputed.py"+\
-        ' --data-path=\"../Gan_Imputation/imputation_train_results/WGAN_One_Stage/'+self.model_dir+ '\"' + ' --n-inputs=' + str(self.n_inputs) 
+        ' --data-path=\"../imputation/imputation_train_results/E2EGAN_PHY/'+self.model_dir+ '\"' + ' --n-inputs=' + str(self.n_inputs) 
         os.system(command)
 
     @property
@@ -661,12 +665,15 @@ class E2EGAN(object):
             )
 
 
-    def save_imputation(self,impute_out,batchid,data_x_lengths,imputed_delta,data_y,isTrain):
+    def save_imputation(self,impute_out,batchid,data_x_lengths,imputed_delta,data_y, runtype):
         #填充后的数据全是n_steps长度！，但只有data_x_lengths才是可用的
-        if isTrain:
+        if runtype == 1:
             imputation_dir="imputation_train_results"
-        else:
+        elif runtype == 2:
+            imputation_dir="imputation_val_results"
+        elif runtype ==3 :
             imputation_dir="imputation_test_results"
+
         
         if not os.path.exists(os.path.join(imputation_dir,\
                                      self.model_name,\

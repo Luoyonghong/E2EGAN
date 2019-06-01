@@ -33,7 +33,7 @@ def main():
     parser.add_argument('--beta1',type=float,default=0.5)
     parser.add_argument('--lr', type=float, default=0.005)
     #lr 0.001的时候 pretrain_loss降的很快，4个epoch就行了
-    parser.add_argument('--epoch', type=int, default=30)
+    parser.add_argument('--epoch', type=int, default=10)
     parser.add_argument('--n-inputs', type=int, default=41)
     parser.add_argument('--n-hidden-units', type=int, default=64)
     parser.add_argument('--n-classes', type=int, default=2)
@@ -66,11 +66,11 @@ def main():
 
     #make the max step length of two datasett the same
     #epochs=[30]
-    #g_loss_lambdas=[0.2,0.5,1,10,20,50]
-    #disc_iters = [1,2,3,4,5,6,7,8]
+    g_loss_lambdas=[0.2,0.5,1,5,10,16,20,50]
+    disc_iters = [1,2,3,4,5,6,7,8]
     epochs=[10]
-    g_loss_lambdas=[16]
-    disc_iters = [6]
+    #g_loss_lambdas=[10]
+    #disc_iters = [5]
     for disc in disc_iters:
         for e in epochs:
             for g_l in g_loss_lambdas:
@@ -79,39 +79,38 @@ def main():
                 args.g_loss_lambda=g_l
                 tf.reset_default_graph()
                 dt_train=readData.ReadPhysionetData(os.path.join(args.data_path,"train"), os.path.join(args.data_path,"train","list.txt"),isNormal=args.isNormal,isSlicing=args.isSlicing)
-                dt_test=readTestData.ReadPhysionetData(os.path.join(args.data_path,"test"), os.path.join(args.data_path,"test","list.txt"),dt_train.maxLength,isNormal=args.isNormal,isSlicing=args.isSlicing)
+                dt_test=readTestValData.ReadPhysionetData(os.path.join(args.data_path,"test"), os.path.join(args.data_path,"test","list.txt"),dt_train.maxLength,isNormal=args.isNormal,isSlicing=args.isSlicing)
+                dt_val=readTestValData.ReadPhysionetData(os.path.join(args.data_path,"val"), os.path.join(args.data_path,"val","list.txt"),dt_train.maxLength,isNormal=args.isNormal,isSlicing=args.isSlicing)
                 tf.reset_default_graph()
                 config = tf.ConfigProto() 
                 config.gpu_options.allow_growth = True 
                 with tf.Session(config=config) as sess:
-                    gan = WGAN_One_Stage.WGAN_GP(sess,
+                    gan = E2EGAN_PHY.E2EGAN(sess,
                                 args=args,
                                 datasets=dt_train,
                                 )
-                
+            
                     # build graph
                     gan.build_model()
-                
+            
                     # show network architecture
                     #show_all_variables()
-                
+            
                     # launch the graph in a session
                     gan.train()
                     print(" [*] Training finished!")
-                    
-                    """
-                    t_vars = tf.trainable_variables()
-                    var_count=1
-                    for var in t_vars:
-                        np.savetxt(var.name.replace("/","").replace(":","")+".csv", sess.run(var), delimiter=",")
-                        var_count+=1
-                    """
-                    gan.imputation(dt_train,True)
-                    
+                
+                    print(" [*] Train dataset Imputation begin!")
+                    gan.imputation(dt_train, 1)
                     print(" [*] Train dataset Imputation finished!")
-                    
-                    gan.imputation(dt_test,False)
-                    
+                
+
+                    print(" [*] Val dataset Imputation begin!")
+                    gan.imputation(dt_val, 2)
+                    print(" [*] Val dataset Imputation finished!")
+
+                    print(" [*] Test dataset Imputation begin!")
+                    gan.imputation(dt_test, 3)
                     print(" [*] Test dataset Imputation finished!")
                 tf.reset_default_graph()
 if __name__ == '__main__':
