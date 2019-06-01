@@ -9,40 +9,24 @@ import os
 
 def f():
 
-    folders =  os.listdir("./")
-    globalMin=0.0
+    folders =  os.listdir("./checkpoint_physionet_imputed/")
+    globalMax=0.0
+    final_result = open("final_result", "w")
     globalf = ''
     for folder in folders:
-        if os.path.isdir(folder):
-            secondPaths=os.listdir("./"+folder)
-            nowMin=0.0
-            for s in secondPaths:
-                #print(s)
-                if os.path.isfile(os.path.join("./",folder,s,"result")):
-                    with open(os.path.join("./",folder,s,"result"),"r") as f:
-                        temp=0.0 
-                        for line in f:
-                            #print(line)
-                            a=float(line.split(",")[2])
-                            #print(a)
-                            if a>nowMin:
-                                nowMin=a
-                            if a>globalMin:
-                                globalMin=a
-                                globalf = folder 
-                            if a>temp:
-                                temp=a 
-                        ggg=open(os.path.join(folder,s,str(temp)),"w")
-                        ggg.close()
-            r=open(os.path.join(folder,str(nowMin)),"w")
-            r.close()
-            if nowMin>globalMin:
-                globalMin=nowMin
-                globalf = folder 
-    d=open(os.path.join(str(globalMin)),"w")
-    d.close()
-    print(globalMin)
+        result_file = open("./checkpoint_physionet_imputed/" + folder + "/test_result")
+        line = result_file.readlines()[0]
+        final_result.write(folder + ": ")
+        final_result.write(line)
+        final_result.write("\n")
+        final_result.flush()
+        now_auc = float(line.split(":")[-1].strip())
+        if now_auc > globalMax:
+            globalMax = now_auc
+            globalf = folder + ": " + line
+    print(globalMax)
     print(globalf)
+    final_result.close()
 
 if __name__=="__main__":
     f()
