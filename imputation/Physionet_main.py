@@ -69,50 +69,50 @@ def main():
     #g_loss_lambdas=[0.2,0.5,1,10,20,50]
     #disc_iters = [1,2,3,4,5,6,7,8]
     epochs=[10]
-    #g_loss_lambdas=[9.9]
-    disc_iters = [5.0]
+    g_loss_lambdas=[16]
+    disc_iters = [6]
     for disc in disc_iters:
         for e in epochs:
-            #for g_l in g_loss_lambdas:
-            args.epoch=e
-            args.disc_iters = disc
-            #args.g_loss_lambda=g_l
-            tf.reset_default_graph()
-            dt_train=readData.ReadPhysionetData(os.path.join(args.data_path,"train"), os.path.join(args.data_path,"train","list.txt"),isNormal=args.isNormal,isSlicing=args.isSlicing)
-            dt_test=readTestData.ReadPhysionetData(os.path.join(args.data_path,"test"), os.path.join(args.data_path,"test","list.txt"),dt_train.maxLength,isNormal=args.isNormal,isSlicing=args.isSlicing)
-            tf.reset_default_graph()
-            config = tf.ConfigProto() 
-            config.gpu_options.allow_growth = True 
-            with tf.Session(config=config) as sess:
-                gan = WGAN_One_Stage.WGAN_GP(sess,
-                            args=args,
-                            datasets=dt_train,
-                            )
-            
-                # build graph
-                gan.build_model()
-            
-                # show network architecture
-                #show_all_variables()
-            
-                # launch the graph in a session
-                gan.train()
-                print(" [*] Training finished!")
+            for g_l in g_loss_lambdas:
+                args.epoch=e
+                args.disc_iters = disc
+                args.g_loss_lambda=g_l
+                tf.reset_default_graph()
+                dt_train=readData.ReadPhysionetData(os.path.join(args.data_path,"train"), os.path.join(args.data_path,"train","list.txt"),isNormal=args.isNormal,isSlicing=args.isSlicing)
+                dt_test=readTestData.ReadPhysionetData(os.path.join(args.data_path,"test"), os.path.join(args.data_path,"test","list.txt"),dt_train.maxLength,isNormal=args.isNormal,isSlicing=args.isSlicing)
+                tf.reset_default_graph()
+                config = tf.ConfigProto() 
+                config.gpu_options.allow_growth = True 
+                with tf.Session(config=config) as sess:
+                    gan = WGAN_One_Stage.WGAN_GP(sess,
+                                args=args,
+                                datasets=dt_train,
+                                )
                 
-                """
-                t_vars = tf.trainable_variables()
-                var_count=1
-                for var in t_vars:
-                    np.savetxt(var.name.replace("/","").replace(":","")+".csv", sess.run(var), delimiter=",")
-                    var_count+=1
-                """
-                gan.imputation(dt_train,True)
+                    # build graph
+                    gan.build_model()
                 
-                print(" [*] Train dataset Imputation finished!")
+                    # show network architecture
+                    #show_all_variables()
                 
-                gan.imputation(dt_test,False)
-                
-                print(" [*] Test dataset Imputation finished!")
-            tf.reset_default_graph()
+                    # launch the graph in a session
+                    gan.train()
+                    print(" [*] Training finished!")
+                    
+                    """
+                    t_vars = tf.trainable_variables()
+                    var_count=1
+                    for var in t_vars:
+                        np.savetxt(var.name.replace("/","").replace(":","")+".csv", sess.run(var), delimiter=",")
+                        var_count+=1
+                    """
+                    gan.imputation(dt_train,True)
+                    
+                    print(" [*] Train dataset Imputation finished!")
+                    
+                    gan.imputation(dt_test,False)
+                    
+                    print(" [*] Test dataset Imputation finished!")
+                tf.reset_default_graph()
 if __name__ == '__main__':
     main()
