@@ -12,8 +12,14 @@ import E2EGAN_PHY
 import tensorflow as tf
 import argparse
 import numpy as np
+import random
 from Physionet2012Data import readData, readTestValData
 import os
+SEED = 1
+os.environ['PYTHONHASHSEED'] = str(SEED)
+random.seed(SEED)
+np.random.seed(SEED)
+tf.set_random_seed(SEED)
 
 """main"""
 def main():
@@ -65,11 +71,11 @@ def main():
 
     #make the max step length of two datasett the same
     #epochs=[30]
-    g_loss_lambdas=[0.2,0.5,1,5,8,10,16,20,50]
-    disc_iters = [1,2,3,4,5,6,7,8]
+    #g_loss_lambdas=[0.2,0.5,1,5,8,10,16,20,50]
+    #disc_iters = [1,2,3,4,5,6,7,8]
     epochs=[10]
-    #g_loss_lambdas=[16]
-    #disc_iters = [6]
+    g_loss_lambdas=[0.2]
+    disc_iters = [3]
     for disc in disc_iters:
         for e in epochs:
             for g_l in g_loss_lambdas:
@@ -77,6 +83,7 @@ def main():
                 args.disc_iters = disc
                 args.g_loss_lambda=g_l
                 tf.reset_default_graph()
+                tf.set_random_seed(SEED)
                 dt_train=readData.ReadPhysionetData(os.path.join(args.data_path,"train"), os.path.join(args.data_path,"train","list.txt"),isNormal=args.isNormal,isSlicing=args.isSlicing)
                 dt_test=readTestValData.ReadPhysionetData(os.path.join(args.data_path,"test"), os.path.join(args.data_path,"test","list.txt"),dt_train.maxLength,isNormal=args.isNormal,isSlicing=args.isSlicing)
                 dt_val=readTestValData.ReadPhysionetData(os.path.join(args.data_path,"val"), os.path.join(args.data_path,"val","list.txt"),dt_train.maxLength,isNormal=args.isNormal,isSlicing=args.isSlicing)
@@ -96,21 +103,24 @@ def main():
                     #show_all_variables()
             
                     # launch the graph in a session
-                    gan.train()
-                    print(" [*] Training finished!")
-                
-                    print(" [*] Train dataset Imputation begin!")
-                    gan.imputation(dt_train, 1)
-                    print(" [*] Train dataset Imputation finished!")
+                    canload = gan.train()
+                    if canload:
+                        print("load success")
+                    else:
+                        print(" [*] Training finished!")
+    
+                        print(" [*] Train dataset Imputation begin!")
+                        gan.imputation(dt_train, 1)
+                        print(" [*] Train dataset Imputation finished!")
                 
 
-                    print(" [*] Val dataset Imputation begin!")
-                    gan.imputation(dt_val, 2)
-                    print(" [*] Val dataset Imputation finished!")
+                        print(" [*] Val dataset Imputation begin!")
+                        gan.imputation(dt_val, 2)
+                        print(" [*] Val dataset Imputation finished!")
 
-                    print(" [*] Test dataset Imputation begin!")
-                    gan.imputation(dt_test, 3)
-                    print(" [*] Test dataset Imputation finished!")
+                        print(" [*] Test dataset Imputation begin!")
+                        gan.imputation(dt_test, 3)
+                        print(" [*] Test dataset Imputation finished!")
                 tf.reset_default_graph()
 if __name__ == '__main__':
     main()

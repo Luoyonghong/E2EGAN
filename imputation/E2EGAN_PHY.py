@@ -5,10 +5,16 @@ import math
 import time
 import tensorflow as tf
 import numpy as np
+import random
 from ops import *
 from utils import *
 from tensorflow.python.ops import math_ops
 from GRUI import mygru_cell
+SEED = 1
+os.environ['PYTHONHASHSEED'] = str(SEED)
+random.seed(SEED)
+np.random.seed(SEED)
+tf.set_random_seed(SEED)
 
 """
 生成器太弱，loss一直为负
@@ -76,11 +82,11 @@ class E2EGAN(object):
             z = self.time_series_to_z(x, m, ita, deltaPre, X_lengths, Keep_prob, reuse)
             #自编码器，x映射成z
 
-            wr_h=tf.get_variable("g_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())
-            w_out= tf.get_variable("g_w_out",shape=[self.n_hidden_units, self.n_inputs],initializer=tf.random_normal_initializer())
+            wr_h=tf.get_variable("g_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer(seed = SEED))
+            w_out= tf.get_variable("g_w_out",shape=[self.n_hidden_units, self.n_inputs],initializer=tf.random_normal_initializer(seed = SEED))
             br_h= tf.get_variable("g_br_h",shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))
             b_out= tf.get_variable("g_b_out",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
-            w_z=tf.get_variable("g_w_z",shape=[self.z_dim,self.n_inputs],initializer=tf.random_normal_initializer())
+            w_z=tf.get_variable("g_w_z",shape=[self.z_dim,self.n_inputs],initializer=tf.random_normal_initializer(seed = SEED))
             b_z=tf.get_variable("g_b_z",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
             
             #self.times=tf.reshape(self.times,[self.batch_size,self.n_steps,self.n_inputs])
@@ -112,7 +118,7 @@ class E2EGAN(object):
             #outputs: batch_size*1*n_hidden
             outputs=tf.reshape(outputs,[-1,self.n_hidden_units])
             # full connect
-            out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
+            out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob,seed = SEED), w_out) + b_out
             out_predict=tf.reshape(out_predict,[-1,1,self.n_inputs])
             
             total_result=tf.multiply(out_predict,1.0)
@@ -134,7 +140,7 @@ class E2EGAN(object):
                             time_major=False)
                 init_state=final_state
                 outputs=tf.reshape(outputs,[-1,self.n_hidden_units])
-                out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
+                out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob,seed = SEED), w_out) + b_out
                 out_predict=tf.reshape(out_predict,[-1,1,self.n_inputs])
                 total_result=tf.concat([total_result,out_predict],1)
             
@@ -156,8 +162,8 @@ class E2EGAN(object):
         # Architecture : (64)4c2s-(128)4c2s_BL-FC1024_BL-FC1_S
         with tf.variable_scope("d_iscriminator", reuse=reuse):
             
-            wr_h = tf.get_variable("d_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())
-            w_out = tf.get_variable("d_w_out",shape=[self.n_hidden_units, 1],initializer=tf.random_normal_initializer())
+            wr_h = tf.get_variable("d_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer(seed = SEED))
+            w_out = tf.get_variable("d_w_out",shape=[self.n_hidden_units, 1],initializer=tf.random_normal_initializer(seed = SEED))
             br_h = tf.get_variable("d_br_h",shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))
             b_out = tf.get_variable("d_b_out",shape=[1, ],initializer=tf.constant_initializer(0.001))
           
@@ -183,7 +189,7 @@ class E2EGAN(object):
          
             # final_state:batch_size*n_hiddensize
             # 不能用最后一个，应该用第length个  之前用了最后一个，所以输出无论如何都是b_out
-            out_logit=tf.matmul(tf.nn.dropout(final_state,Keep_prob), w_out) + b_out
+            out_logit=tf.matmul(tf.nn.dropout(final_state,Keep_prob,seed = SEED), w_out) + b_out
             out =tf.nn.sigmoid(out_logit)    #选取最后一个 output
             return out,out_logit
 
@@ -192,8 +198,8 @@ class E2EGAN(object):
         with tf.variable_scope("g_TimeSeriesToZ", reuse=reuse):
             #缩写成ts2z
             #gennerate 
-            wr_h = tf.get_variable("g_ts2z_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())
-            w_out = tf.get_variable("g_ts2z_w_out",shape=[self.n_hidden_units, self.z_dim],initializer=tf.random_normal_initializer())
+            wr_h = tf.get_variable("g_ts2z_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer(seed = SEED))
+            w_out = tf.get_variable("g_ts2z_w_out",shape=[self.n_hidden_units, self.z_dim],initializer=tf.random_normal_initializer(seed = SEED))
             br_h = tf.get_variable("g_ts2z_br_h",shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))
             b_out = tf.get_variable("g_ts2z_b_out",shape=[self.z_dim, ],initializer=tf.constant_initializer(0.001))
           
@@ -222,7 +228,7 @@ class E2EGAN(object):
          
             # final_state:batch_size*n_hiddensize
             # 不能用最后一个，应该用第length个  之前用了最后一个，所以输出无论如何都是b_out
-            z_out = tf.matmul(tf.nn.dropout(final_state, keep_prob), w_out) + b_out
+            z_out = tf.matmul(tf.nn.dropout(final_state, keep_prob, seed = SEED), w_out) + b_out
 
             return z_out 
 
@@ -238,11 +244,11 @@ class E2EGAN(object):
             z = self.time_series_to_z(x, m, ita, deltaPre, X_lengths, Keep_prob, reuse)
             #自编码器，x映射成z
 
-            wr_h=tf.get_variable("g_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())
-            w_out= tf.get_variable("g_w_out",shape=[self.n_hidden_units, self.n_inputs],initializer=tf.random_normal_initializer())
+            wr_h=tf.get_variable("g_wr_h",shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer(seed = SEED))
+            w_out= tf.get_variable("g_w_out",shape=[self.n_hidden_units, self.n_inputs],initializer=tf.random_normal_initializer(seed = SEED))
             br_h= tf.get_variable("g_br_h",shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))
             b_out= tf.get_variable("g_b_out",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
-            w_z=tf.get_variable("g_w_z",shape=[self.z_dim,self.n_inputs],initializer=tf.random_normal_initializer())
+            w_z=tf.get_variable("g_w_z",shape=[self.z_dim,self.n_inputs],initializer=tf.random_normal_initializer(seed = SEED))
             b_z=tf.get_variable("g_b_z",shape=[self.n_inputs, ],initializer=tf.constant_initializer(0.001))
             
             # batch_size*z_dim-->batch_size*n_inputs
@@ -269,7 +275,7 @@ class E2EGAN(object):
             #outputs: batch_size*1*n_hidden
             outputs=tf.reshape(outputs,[-1,self.n_hidden_units])
             # full connect
-            out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
+            out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob,seed = SEED), w_out) + b_out
             out_predict=tf.reshape(out_predict,[-1,1,self.n_inputs])
             
             total_result=tf.multiply(out_predict,1.0)
@@ -291,7 +297,7 @@ class E2EGAN(object):
                             time_major=False)
                 init_state=final_state
                 outputs=tf.reshape(outputs,[-1,self.n_hidden_units])
-                out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
+                out_predict=tf.matmul(tf.nn.dropout(outputs,Keep_prob,seed = SEED), w_out) + b_out
                 out_predict=tf.reshape(out_predict,[-1,1,self.n_inputs])
                 total_result=tf.concat([total_result,out_predict],1)
             
@@ -387,12 +393,12 @@ class E2EGAN(object):
         t_vars = tf.trainable_variables()
         d_vars = [var for var in t_vars if 'd_' in var.name]
         g_vars = [var for var in t_vars if 'g_' in var.name]
-        print("d vars:")
-        for v in d_vars:
-            print(v.name)
-        print("g vars:")
-        for v in g_vars:
-            print(v.name)
+        #print("d vars:")
+        #for v in d_vars:
+        #    print(v.name)
+        #print("g vars:")
+        #for v in g_vars:
+        #    print(v.name)
         
         
         # optimizers
@@ -448,6 +454,7 @@ class E2EGAN(object):
                     subvalues = self.reduce_dimension(subvalues,3)
                     imputed_deltasub = self.reduce_dimension(imputed_deltasub,3)
 
+                    np.random.seed(SEED)
                     ita = np.random.normal(0, 0.01, size=(self.batch_size, self.n_steps, self.n_inputs))
                     _, summary_str,preloss = self.sess.run([self.g_pre_optim, self.g_pretrain_sum, self.pretrain_loss], 
                                                 feed_dict={
@@ -488,7 +495,8 @@ class E2EGAN(object):
             #counter = checkpoint_counter
             counter=start_epoch*self.num_batches
             print(" [*] Load SUCCESS")
-            return 
+            self.run_grui()    
+            return True 
         else:
             # initialize all variables
             tf.global_variables_initializer().run()
@@ -521,7 +529,7 @@ class E2EGAN(object):
                 deltaSub = self.reduce_dimension(deltaSub,3)
                 subvalues = self.reduce_dimension(subvalues,3)
                 imputed_deltasub = self.reduce_dimension(imputed_deltasub,3)
-
+                np.random.seed(SEED)
                 ita = np.random.normal(0, 0.01, size=(self.batch_size, self.n_steps, self.n_inputs))
                 #_ = self.sess.run(self.clip_D)
                 _ = self.sess.run(self.clip_all_vals)
@@ -598,6 +606,7 @@ class E2EGAN(object):
 
         
         self.save(self.checkpoint_dir, counter)
+        return False
 
     def imputation(self, dataset, runtype ):
         self.datasets = dataset 
@@ -620,7 +629,7 @@ class E2EGAN(object):
             deltaSub = self.reduce_dimension(deltaSub,3)
             subvalues = self.reduce_dimension(subvalues,3)
             imputed_deltasub = self.reduce_dimension(imputed_deltasub,3)
-
+            np.random.seed(SEED)
             ita = np.random.normal(0, 0.01, size=(self.batch_size, self.n_steps, self.n_inputs))
             #_ = self.sess.run(self.clip_D)
             _ = self.sess.run(self.clip_all_vals)
@@ -645,10 +654,11 @@ class E2EGAN(object):
 
         if runtype == 3:
             self.run_grui()
+            #pass
         
     def run_grui(self):
         random.seed()
-        gpu=random.randint(0,1)
+        gpu=1
         command="CUDA_VISIBLE_DEVICES="+str(gpu)+" python ../GRUI/Run_GAN_imputed.py"+\
         ' --data-path=\"../imputation/imputation_train_results/E2EGAN_PHY/'+self.model_dir+ '\"' + ' --n-inputs=' + str(self.n_inputs) 
         os.system(command)

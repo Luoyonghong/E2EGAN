@@ -14,9 +14,14 @@ from sklearn import metrics
 import time
 import mygru_cell
 import tensorflow as tf
+import random
 from tensorflow.python.ops import math_ops
-tf.set_random_seed(1)   # set random seed
- 
+#tf.set_random_seed(1)   # set random seed
+SEED = 1
+os.environ['PYTHONHASHSEED'] = str(SEED)
+random.seed(SEED)
+np.random.seed(SEED)
+tf.set_random_seed(SEED)
 class gru(object):
     model_name = "GRU"
     def __init__(self, sess, args, dataset, test_set, val_set):
@@ -63,8 +68,8 @@ class gru(object):
          with tf.variable_scope("grui", reuse=reuse):
            
             # then wr_x should be transformed into a diag matrix:tf.matrix_diag(wr_x)
-            wr_h=tf.get_variable('wr_h',shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer())
-            w_out=tf.get_variable('w_out', shape=[self.n_hidden_units, self.n_classes],initializer=tf.random_normal_initializer())
+            wr_h=tf.get_variable('wr_h',shape=[self.n_inputs,self.n_hidden_units],initializer=tf.random_normal_initializer(seed=SEED))
+            w_out=tf.get_variable('w_out', shape=[self.n_hidden_units, self.n_classes],initializer=tf.random_normal_initializer(seed=SEED))
         
             br_h=tf.get_variable('br_h', shape=[self.n_hidden_units, ],initializer=tf.constant_initializer(0.001))
             b_out=tf.get_variable('b_out', shape=[self.n_classes, ],initializer=tf.constant_initializer(0.001))
@@ -100,7 +105,7 @@ class gru(object):
                                 time_major=False)
          
             factor=tf.matrix_diag([1.0/9,1])
-            tempout=tf.matmul(tf.nn.dropout(final_state,Keep_prob), w_out) + b_out
+            tempout=tf.matmul(tf.nn.dropout(final_state,Keep_prob,seed=SEED), w_out) + b_out
             results =tf.nn.softmax(tf.matmul(tempout,factor))    #选取最后一个 output
             #todo: dropout of 0.5 and batch normalization
             return results

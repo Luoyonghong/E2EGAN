@@ -11,15 +11,22 @@ import sys
 sys.path.append("..")
 import argparse
 import os
+import random
 import tensorflow as tf
+import numpy as np
 from Physionet2012ImputedData import readImputed
-import gru_forGAN 
+import gru_forGAN
+SEED = 1
+os.environ['PYTHONHASHSEED'] = str(SEED)
+random.seed(SEED)
+np.random.seed(SEED)
+tf.set_random_seed(SEED)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='manual to this script')
     parser.add_argument('--gpus', type=str, default = None)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--run-type', type=str, default='test')
-    parser.add_argument('--data-path', type=str, default="../imputation/imputation_train_results/E2EGAN_PHY/10_6_41_128_64_0.005_400_True_True_True_16_0.5")
+    parser.add_argument('--data-path', type=str, default="../imputation/imputation_train_results/E2EGAN_PHY/10_3_41_128_64_0.005_400_True_True_True_0.2_0.5")
     #输入填充之后的训练数据集的完整路径
     parser.add_argument('--model-path', type=str, default=None)
     parser.add_argument('--result-path', type=str, default=None)
@@ -72,16 +79,17 @@ if __name__ == '__main__':
 
 
     paras = []
-    hiddenUnits=[16,32,64,128]
-    lrs=[0.008,0.01,0.012,0.015] 
-    #hiddenUnits=[64]
-    #lrs=[0.005, 0.008] 
+    #hiddenUnits=[16,32,64,128]
+    #lrs=[0.008,0.01,0.012,0.015] 
+    hiddenUnits=[32]
+    lrs=[0.015] 
     max_auc = 0.5
     for units in hiddenUnits:
         for lr in lrs:
             args.n_hidden_units=units
             args.lr=lr
             tf.reset_default_graph()
+            tf.set_random_seed(SEED)
             config = tf.ConfigProto() 
             config.gpu_options.allow_growth = True 
             with tf.Session(config=config) as sess:
