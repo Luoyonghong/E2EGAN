@@ -1,4 +1,4 @@
-#IJCAI19 paper E2GAN: End-to-End Generative Adversarial Network for Multivariate Time Series Imputation 
+# IJCAI19 paper E2GAN: End-to-End Generative Adversarial Network for Multivariate Time Series Imputation 
  author: Yonghong Luo, Ying Zhang*, Xiangrui Cai and Xiaojie Yuan
  
  tensorflow version:1.7 python:2.7
