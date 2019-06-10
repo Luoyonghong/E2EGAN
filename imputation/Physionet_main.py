@@ -74,8 +74,8 @@ def main():
     #g_loss_lambdas=[0.2,0.5,1,5,8,10,16,20,50]
     #disc_iters = [1,2,3,4,5,6,7,8]
     epochs=[10]
-    g_loss_lambdas=[0.2]
-    disc_iters = [3]
+    g_loss_lambdas=[50]
+    disc_iters = [7]
     for disc in disc_iters:
         for e in epochs:
             for g_l in g_loss_lambdas:

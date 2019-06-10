@@ -26,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpus', type=str, default = None)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--run-type', type=str, default='test')
-    parser.add_argument('--data-path', type=str, default="../imputation/imputation_train_results/E2EGAN_PHY/10_3_41_128_64_0.005_400_True_True_True_0.2_0.5")
+    parser.add_argument('--data-path', type=str, default="../imputation/imputation_train_results/E2EGAN_PHY/10_7_41_128_64_0.005_400_True_True_True_50_0.5")
     #输入填充之后的训练数据集的完整路径
     parser.add_argument('--model-path', type=str, default=None)
     parser.add_argument('--result-path', type=str, default=None)
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     paras = []
     #hiddenUnits=[16,32,64,128]
     #lrs=[0.008,0.01,0.012,0.015] 
-    hiddenUnits=[32]
+    hiddenUnits=[16]
     lrs=[0.015] 
     max_auc = 0.5
     for units in hiddenUnits:
@@ -115,9 +115,9 @@ if __name__ == '__main__':
                     paras.append(max_val_epoch)
 
             print("")
-    print("max  auc is : %.8f" %(max_auc))
+    print("test  auc is : %.8f" %(max_auc))
     print()
-    print("max  auc paras:")
+    print("test  auc paras:")
     print(paras)
 
 
